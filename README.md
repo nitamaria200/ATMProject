@@ -40,7 +40,7 @@ flowchart LR
 | [`MPG.vhd`](src/MPG.vhd) | Button debouncer and single-pulse generator |
 | [`SSD_PIN.vhd`](src/SSD_PIN.vhd) | Multiplexed 7-segment display driver |
 
-📄 Block diagrams, the state diagram and the design justifications are in [`docs/ATM_project.pdf`](docs/ATM project.pdf).
+📄 Block diagrams, the state diagram and the design justifications are in [`docs/ATM_project.pdf`](docs/ATM_project.pdf).
 
 ## 🚀 Run it
 
