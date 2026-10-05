@@ -13,12 +13,12 @@ This repository contains the VHDL implementation of an Automated Teller Machine 
 
 ## ✨ Features
 
-- 💳 **4 card accounts**, each with its own PIN and balance in on-chip RAM
-- 🔐 **PIN authentication** with 4-digit entry and an LED that lights up when the PIN matches
-- 💶 **Balance check**, **deposit** (€5 to €500 notes) and **withdrawal** (max €1,000 per transaction)
-- 🔄 **PIN change**, active immediately
-- ⚠️ **Error codes** on the display for over-limit or insufficient-funds withdrawals
-- 🧼 **Debounced buttons**, so one press is exactly one action
+- **4 card accounts**, each with its own PIN and balance in on-chip RAM
+- **PIN authentication** with 4-digit entry and an LED that lights up when the PIN matches
+- **Balance check**, **deposit** (€5 to €500 notes) and **withdrawal** (max €1,000 per transaction)
+- **PIN change**, active immediately
+- **Error codes** on the display for over-limit or insufficient-funds withdrawals
+- **Debounced buttons**, so one press is exactly one action
 
 ## 🧠 Architecture
 
@@ -56,10 +56,10 @@ flowchart LR
 
 | `sel_op` | Operation | Steps |
 |:---:|---|---|
-| `00` | 💶 Balance | Shown straight away |
-| `01` | 🔄 Change PIN | Load 4 new digits, then confirm |
-| `10` | 📥 Deposit | Set `bill`, press **add** per note, then confirm |
-| `11` | 📤 Withdraw | Build the amount digit by digit with `bill` and **add**, then confirm |
+| `00` |  Balance | Shown straight away |
+| `01` |  Change PIN | Load 4 new digits, then confirm |
+| `10` |  Deposit | Set `bill`, press **add** per note, then confirm |
+| `11` |  Withdraw | Build the amount digit by digit with `bill` and **add**, then confirm |
 
 Demo cards for testing: card `00` has PIN `9736`, card `01` has `1234`, card `10` has `1062`, and card `11` has `5406`. The display shows values in hexadecimal.
 
