@@ -1,3 +1,99 @@
-# atm-fpga-project
-ATM system implemented as a finite state machine in VHDL on a Basys 3 FPGA board.
-🏧 FPGA ATM System in VHDLThis repository holds my VHDL implementation of an Automated Teller Machine (ATM), designed specifically for the Basys 3 FPGA board. It simulates real-world banking operations—like secure card authentication, balance checking, deposits, and withdrawals—using hardware switches, buttons, and a 7-segment display.   ✨ Core Features💳 Multi-Account Support: Simulates 4 distinct card accounts, storing unique PINs and balances in an internal synchronous RAM block.   🔒 Secure Authentication: Uses a 4-digit PIN entry system built with shift registers and debounced button inputs to ensure reliable access.   💶 Cash Operations (EURO):Handles withdrawals up to €1,000 per transaction, with built-in checks for insufficient funds or exceeding the transaction limit.   Processes deposits using predefined banknote denominations (€5, €10, €20, €50, €100, €200, €500) decoded via ROM lookup tables.   📊 Account Management: Allows users to easily check their current balance and securely update their PIN.   🏗️ System ArchitectureI designed the system using a top-down approach, physically splitting the architecture into a Control Unit and an Execution Unit.   🧠 Control Unit (CU): A finite state machine that governs system states like Card Insertion, PIN Verification, and Operation Selection.   ⚙️ Execution Unit (EU): Manages the data routing and math. Key hardware components include:32-bit RAM: Stores the card balances and PINs.   Shift Registers: Captures sequential user PIN input, which allows a full 16-bit PIN entry while saving physical switch space.   ROM Blocks: Act as lookup tables to translate 3-bit bill identifiers into monetary values, keeping the integer arithmetic efficient.   Mono Pulse Generators (MPG): Debounces the physical button presses to guarantee clean, single-cycle inputs.   Multiplexers (MUX): Controls data routing to the display and RAM based on what operation is currently active.   🎛️ Hardware Requirements & Pin MappingIf you are running this on a Digilent Basys 3 FPGA Board, here is how the physical I/O maps out:   ComponentBasys 3 PinFunctionSwitchesW15, V15Select target card (0 to 3)   SwitchesV17, V16, W16, W174-bit data input for PIN digits   SwitchesW14, W13Operation Selection (00: Balance, 01: Change PIN, 10: Deposit, 11: Withdraw)   SwitchesU1, T1, R2Select bill denomination for deposits/withdrawals   ButtonW19Load digit (load_en)   ButtonU18Confirm complete PIN (confirm_pin_en)   ButtonT18Confirm operation/transaction (confirm_en)   ButtonU17Add selected bill to running total (add_en)   Display7-SegmentOutputs current balance, transaction sums, or error codes (000E / 0001)   LEDU16Indicates successful PIN match   📄 DocumentationFor a deep dive into the hardware design, state machine diagrams, and my technical justifications, please check out the ATM project.pdf included in this repository.
+<div align="center">
+
+# 🏧 FPGA ATM
+
+
+
+</div>
+
+<!-- 📸 Add a photo or GIF of the board running here:
+<p align="center"><img src="docs/img/demo.gif" width="600"></p> -->
+
+This repository contains the VHDL implementation of an Automated Teller Machine (ATM) designed for the Basys 3 FPGA board. The system simulates real-world ATM operations including secure card authentication, balance checking, deposits, and withdrawals using hardware switches, buttons, and a 7-segment display. 🔧
+
+## ✨ Features
+
+- 💳 **4 card accounts**, each with its own PIN and balance in on-chip RAM
+- 🔐 **PIN authentication** with 4-digit entry and an LED that lights up when the PIN matches
+- 💶 **Balance check**, **deposit** (€5 to €500 notes) and **withdrawal** (max €1,000 per transaction)
+- 🔄 **PIN change**, active immediately
+- ⚠️ **Error codes** on the display for over-limit or insufficient-funds withdrawals
+- 🧼 **Debounced buttons**, so one press is exactly one action
+
+## 🧠 Architecture
+
+The design was broken down top-down into a control part and a resource part, then built bottom-up.
+
+```mermaid
+flowchart LR
+    IN["🎛️ Switches + 4 buttons"] --> MPG["🔘 MPG<br/>debounce"] --> ATM["🏧 ATM top level<br/>PIN check · deposit · withdraw"]
+    IN --> ATM
+    ATM <--> RAM["🗄️ card_ram<br/>PIN + balance x4"]
+    ATM --> SSD["🔢 SSD driver"]
+    ATM --> LED["💡 PIN OK LED"]
+```
+
+| File | Role |
+|---|---|
+| [`ATM.vhd`](src/ATM.vhd) | Top level: PIN handling, deposit and withdraw logic, error flags, output MUX |
+| [`card_ram.vhd`](src/card_ram.vhd) | 4 x 32-bit RAM (PIN in the upper 16 bits, balance in the lower 16) |
+| [`MPG.vhd`](src/MPG.vhd) | Button debouncer and single-pulse generator |
+| [`SSD_PIN.vhd`](src/SSD_PIN.vhd) | Multiplexed 7-segment display driver |
+
+📄 Block diagrams, the state diagram and the design justifications are in [`docs/ATM_project.pdf`](docs/ATM_project.pdf).
+
+## 🚀 Run it
+
+**Quick:** connect a Basys 3, open Vivado Hardware Manager, and program [`bitstream/ATM.bit`](bitstream/ATM.bit).
+
+**From source:** create a Vivado project for the Basys 3, add the files in `src/` (top module `ATM`) and `constraints/Basys-3-Master.xdc`, then run Synthesis, Implementation and Generate Bitstream.
+
+## 🕹️ How to use it
+
+1. Pick a card with the two **card** switches.
+2. Enter the PIN: set a digit on the 4 data switches, press **load**, repeat 4 times, then press **confirm_pin**. The LED lights up if it's correct.
+3. Set **sel_op** and press **confirm**:
+
+| `sel_op` | Operation | Steps |
+|:---:|---|---|
+| `00` | 💶 Balance | Shown straight away |
+| `01` | 🔄 Change PIN | Load 4 new digits, then confirm |
+| `10` | 📥 Deposit | Set `bill`, press **add** per note, then confirm |
+| `11` | 📤 Withdraw | Build the amount digit by digit with `bill` and **add**, then confirm |
+
+Demo cards for testing: card `00` has PIN `9736`, card `01` has `1234`, card `10` has `1062`, and card `11` has `5406`. The display shows values in hexadecimal.
+
+<details>
+<summary>📌 <b>Basys 3 pin mapping</b></summary>
+
+| Signal | Basys 3 control | Pins | Function |
+|---|---|---|---|
+| `card_nr[1:0]` | SW5, SW4 | V15, W15 | Select card 0 to 3 |
+| `sw[3:0]` | SW3 to SW0 | W17, W16, V16, V17 | Digit input |
+| `sel_op[1:0]` | SW7, SW6 | W13, W14 | Operation select |
+| `bill[2:0]` | SW15 to SW13 | R2, T1, U1 | Banknote or digit-group select |
+| `load` | Button | W19 | Load digit |
+| `confirm_pin` | Button | U18 | Submit PIN |
+| `confirm` | Button | T18 | Confirm operation |
+| `add` | Button | U17 | Add note or increment digit |
+| `led` | LD0 | U16 | PIN match |
+| `an`, `cat` | 7-segment display | | Balance, sums, error codes |
+
+</details>
+
+<details>
+<summary>💶 <b>Bill codes</b></summary>
+
+| `bill` | `000` | `001` | `010` | `011` | `100` | `101` | `110` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Deposit (€) | 5 | 10 | 20 | 50 | 100 | 200 | 500 |
+
+When withdrawing, `001` increments the units digit, `010` the tens and `100` the hundreds.
+
+</details>
+
+
+<div align="center">
+
+
+</div>
