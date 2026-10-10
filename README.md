@@ -1,69 +1,73 @@
-
 # 🏧 FPGA ATM
 
+An ATM implemented in VHDL for the Basys 3 FPGA board. You pick a card and enter its PIN. Then you can check the balance, deposit, withdraw, or change the PIN, all using the board's switches, buttons and 7-segment display.
 
+## Features
 
-</div>
-
-<!-- 📸 Add a photo or GIF of the board running here:
-<p align="center"><img src="docs/img/demo.gif" width="600"></p> -->
-
-This repository contains the VHDL implementation of an Automated Teller Machine (ATM) designed for the Basys 3 FPGA board. The system simulates real-world ATM operations including secure card authentication, balance checking, deposits, and withdrawals using hardware switches, buttons, and a 7-segment display. 🔧
-
-## ✨ Features
-
-- **4 card accounts**, each with its own PIN and balance in on-chip RAM
-- **PIN authentication** with 4-digit entry and an LED that lights up when the PIN matches
-- **Balance check**, **deposit** (€5 to €500 notes) and **withdrawal** (max €1,000 per transaction)
-- **PIN change**, active immediately
-- **Error codes** on the display for over-limit or insufficient-funds withdrawals
+- **4 cards**, each with its own PIN and balance stored in on-chip RAM
+- **PIN check** with 4-digit entry. An LED lights up when the PIN is correct.
+- **Balance**, **deposit** (€5 to €500 notes) and **withdrawal** (up to €1,000 per transaction)
+- **PIN change**, which takes effect immediately
+- **Error codes** on the display when a withdrawal is over the limit or the balance is too low
 - **Debounced buttons**, so one press is exactly one action
 
-## 🧠 Architecture
+## Architecture
 
-The design was broken down top-down into a control part and a resource part, then built bottom-up.
+I split the design top-down into a control part and a resource part, then built it bottom-up.
 
 ```mermaid
 flowchart LR
-    IN["🎛️ Switches + 4 buttons"] --> MPG["🔘 MPG<br/>debounce"] --> ATM["🏧 ATM top level<br/>PIN check · deposit · withdraw"]
+    IN["Switches + 4 buttons"] --> MPG["MPG<br/>debounce"] --> ATM["ATM top level<br/>PIN check · deposit · withdraw"]
     IN --> ATM
-    ATM <--> RAM["🗄️ card_ram<br/>PIN + balance x4"]
-    ATM --> SSD["🔢 SSD driver"]
-    ATM --> LED["💡 PIN OK LED"]
+    ATM <--> RAM["card_ram<br/>PIN + balance x4"]
+    ATM --> SSD["SSD driver"]
+    ATM --> LED["PIN OK LED"]
 ```
 
 | File | Role |
 |---|---|
-| [`ATM.vhd`](src/ATM.vhd) | Top level: PIN handling, deposit and withdraw logic, error flags, output MUX |
+| [`ATM.vhd`](src/ATM.vhd) | Top level: PIN handling, deposit and withdraw logic, error flags, output mux |
 | [`card_ram.vhd`](src/card_ram.vhd) | 4 x 32-bit RAM (PIN in the upper 16 bits, balance in the lower 16) |
 | [`MPG.vhd`](src/MPG.vhd) | Button debouncer and single-pulse generator |
 | [`SSD_PIN.vhd`](src/SSD_PIN.vhd) | Multiplexed 7-segment display driver |
 
-📄 Block diagrams, the state diagram and the design justifications are in [`docs/ATM_project.pdf`](docs/ATM_project.pdf).
+The block diagrams, the state diagram and the reasoning behind the design are in [`docs/ATM_project.pdf`](docs/ATM_project.pdf).
 
-## 🚀 Run it
+## 🚀 Running it
 
-**Quick:** connect a Basys 3, open Vivado Hardware Manager, and program [`bitstream/ATM.bit`](bitstream/ATM.bit).
+**Quick way:** connect a Basys 3, open the Vivado Hardware Manager and program [`bitstream/ATM.bit`](bitstream/ATM.bit).
 
-**From source:** create a Vivado project for the Basys 3, add the files in `src/` (top module `ATM`) and `constraints/Basys-3-Master.xdc`, then run Synthesis, Implementation and Generate Bitstream.
+**From source:**
 
-## 🕹️ How to use it
+1. Create a Vivado project for the Basys 3.
+2. Add the files in `src/` and set `ATM` as the top module.
+3. Add `constraints/Basys-3-Master.xdc`.
+4. Run synthesis and implementation, then generate the bitstream.
+
+## 🕹️ Using it
 
 1. Pick a card with the two **card** switches.
-2. Enter the PIN: set a digit on the 4 data switches, press **load**, repeat 4 times, then press **confirm_pin**. The LED lights up if it's correct.
+2. Enter the PIN. For each of the 4 digits, set the digit on the 4 data switches and press **load**. Then press **confirm_pin**. The LED lights up if the PIN is correct.
 3. Set **sel_op** and press **confirm**:
 
 | `sel_op` | Operation | Steps |
 |:---:|---|---|
-| `00` |  Balance | Shown straight away |
-| `01` |  Change PIN | Load 4 new digits, then confirm |
-| `10` |  Deposit | Set `bill`, press **add** per note, then confirm |
-| `11` |  Withdraw | Build the amount digit by digit with `bill` and **add**, then confirm |
+| `00` | Balance | Shown right away |
+| `01` | Change PIN | Load 4 new digits, then confirm |
+| `10` | Deposit | Set `bill`, press **add** for each note, then confirm |
+| `11` | Withdraw | Build the amount digit by digit with `bill` and **add**, then confirm |
 
-Demo cards for testing: card `00` has PIN `9736`, card `01` has `1234`, card `10` has `1062`, and card `11` has `5406`. The display shows values in hexadecimal.
+The cards come preloaded for testing:
+
+| Card | PIN |
+|:---:|:---:|
+| `00` | 9736 |
+| `01` | 1234 |
+| `10` | 1062 |
+| `11` | 5406 |
 
 <details>
-<summary>📌 <b>Basys 3 pin mapping</b></summary>
+<summary><b>Basys 3 pin mapping</b></summary>
 
 | Signal | Basys 3 control | Pins | Function |
 |---|---|---|---|
@@ -81,7 +85,7 @@ Demo cards for testing: card `00` has PIN `9736`, card `01` has `1234`, card `10
 </details>
 
 <details>
-<summary>💶 <b>Bill codes</b></summary>
+<summary><b>Bill codes</b></summary>
 
 | `bill` | `000` | `001` | `010` | `011` | `100` | `101` | `110` |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -91,8 +95,3 @@ When withdrawing, `001` increments the units digit, `010` the tens and `100` the
 
 </details>
 
-
-<div align="center">
-
-
-</div>
